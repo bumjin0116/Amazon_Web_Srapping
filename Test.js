@@ -8,7 +8,6 @@ let myArgs = process.argv.slice(2).map(Number)
 ,   product_URL = null 
 ,   dataObj = null 
 ,   result = null
-,   objobj = null
 ,   objPrice = new Object()
 ,   objStock = new Object()
 ,   fileName = '상품등록표.xlsx'
@@ -62,7 +61,6 @@ async function crawlProduct(url, num) {
     }
 
     console.log({strPrice});   
-    // console.log({ num, url, strTitle, strStock, strPrice }) ;
     browser.close();
     return { num, url, strTitle, strStock, strPrice } ;
 }
@@ -91,7 +89,6 @@ function excelRead(fileName, i) {
 
     try {
         if(desired_URL.f != null) {
-            //strURL = !desired_URL.f ? null : strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
             strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
         } 
         else if (desired_URL.l.Target != null) {
@@ -108,54 +105,21 @@ function excelRead(fileName, i) {
 }
 
 function excelWrite (fileName, number, stock, price) {
-    let workbook_W = excel.readFile(fileName)
-    ,   worksheet_W = workbook_W.Sheets['미국']
-    ,   address_Stock_col = 'I'
+    let address_Stock_col = 'I'
     ,   address_Price_col = 'J'
     ,   address_hyperlink_low = 4+number
-    ,   address_hyperlink_low_temp = 3+number
     ,   combined_address_Stock = address_Stock_col + String(address_hyperlink_low)
     ,   combined_address_Price = address_Price_col + String(address_hyperlink_low)
-    ,   combined_address_Stock_tmp = address_Stock_col + String(address_hyperlink_low_temp)
-    ,   combined_address_Price_tmp = address_Price_col + String(address_hyperlink_low_temp)
     ,   temp1 = null
     ,   temp2 = null
     ;
     
-    //test = workbook.Sheets['미국']['4'];
     workbook.Sheets['미국'][combined_address_Price] = price;
     workbook.Sheets['미국'][combined_address_Stock] = stock;
     temp1 = workbook.Sheets['미국'][combined_address_Price];
     temp2 = workbook.Sheets['미국'][combined_address_Stock];
-    temp11 = workbook.Sheets['미국'][combined_address_Price_tmp];
-    temp22 = workbook.Sheets['미국'][combined_address_Stock_tmp];
-    
-    //return workbook;
-
-    console.log({temp1});
-    console.log({temp2});
-    console.log('===========================================================');
-    console.log({temp11});
-    console.log({temp22});
-    //console.log({test});
 
 }
-
-/*function generateAlphabetLow(i) {
-    if (i>26) {
-        firstAlpha = i/27;
-        secondAlpha = i-firstAlpha*26;
-        combindedAlpha = String.fromCharCode(64+firstAlpha) + String.fromCharCode(64+secondAlpha);
-        
-        console.log({combindedAlpha});
-    }
-    else {
-        combindedAlpha = String.fromCharCode(64+i);
-
-        console.log({combindedAlpha});
-    }
-    //return combindedAlpha;
-}*/
 
 function constructCell (sInput) {
     var objTemp = new Object();
@@ -170,14 +134,11 @@ function constructCell (sInput) {
 
 (async () => {
     for(i=start;i<end;i++) {
-        // console.log( '\n', i, ' 번째 시작!' ) ;
         product_URL = excelRead('상품등록표.xlsx', i);
         if( product_URL == null ) {            
             console.log( `${i}번째 상품의 링크값에 오류가 있습니다.` ) ;
         } else {
             dataObj = await findFiles( product_URL, i ) ;
-            console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$ 추출결과 $$$$$$$$$$$$$$$$$$$$$$$$$$$$');
-            //console.log({dataObj});
             
             objStock = constructCell(dataObj.strStock);
             objPrice = constructCell(dataObj.strPrice);
