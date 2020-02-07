@@ -4,9 +4,16 @@ const glob = require( 'glob' ) ;
 
 let myArgs = process.argv.slice(2).map(Number)
 ,   start = myArgs[0] || 0
-,   end = myArgs[1] || 10
+,   end = myArgs[1] || 5
 ,   product_URL = null 
 ,   dataObj = null 
+,   result = null
+,   objobj = null
+,   objPrice = new Object()
+,   objStock = new Object()
+,   fileName = '상품등록표.xlsx'
+,   workbook = excel.readFile(fileName)
+,   worksheet = workbook.Sheets['미국']
 ;
 
 async function crawlProduct(url, num) {
@@ -75,30 +82,66 @@ function findFiles( url, num ){
 
 function excelRead(fileName, i) {
     
-    let workbook = excel.readFile(fileName)
-    ,   worksheet = workbook.Sheets['미국']
-    ,   address_hyperlink_col = 'G'
+    let address_hyperlink_col = 'G'
     ,   address_hyperlink_low = 4+i
     ,   combined_address = address_hyperlink_col+String(address_hyperlink_low)
     ,   desired_URL = worksheet[combined_address]
     ,   strURL
     ;   
 
-    // console.log({ desired_URL }) ;
-
-    /* 링크 데이터 값의 형태가 다른 경우 오류가 나기 때문에 null 값으로 넘긴다. */
-    strURL = !desired_URL.f ? null : strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
-    
-    /* if( !desired_URL.f ) {
-        strURL = null ;
-    } else {
-        strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
-    } */
+    try {
+        if(desired_URL.f != null) {
+            //strURL = !desired_URL.f ? null : strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
+            strURL = desired_URL.f.replace("\"","").replace("HYPERLINK(","").replace("\",\"A\")", ""); 
+        } 
+        else if (desired_URL.l.Target != null) {
+            strURL = desired_URL.l.Target;
+        }
+    } catch (e) {
+        console.log('다음과 같은 에러가 발생했습니다.: [%s] : [%s]', e.name, e.message);
+        console.log("********************************** desired_URL is **********************************");
+        console.log({desired_URL});
+        return null;
+    }
 
     return strURL;
 }
 
-function generateAlphabetLow(i) {
+function excelWrite (fileName, number, stock, price) {
+    let workbook_W = excel.readFile(fileName)
+    ,   worksheet_W = workbook_W.Sheets['미국']
+    ,   address_Stock_col = 'I'
+    ,   address_Price_col = 'J'
+    ,   address_hyperlink_low = 4+number
+    ,   address_hyperlink_low_temp = 3+number
+    ,   combined_address_Stock = address_Stock_col + String(address_hyperlink_low)
+    ,   combined_address_Price = address_Price_col + String(address_hyperlink_low)
+    ,   combined_address_Stock_tmp = address_Stock_col + String(address_hyperlink_low_temp)
+    ,   combined_address_Price_tmp = address_Price_col + String(address_hyperlink_low_temp)
+    ,   temp1 = null
+    ,   temp2 = null
+    ;
+    
+    //test = workbook.Sheets['미국']['4'];
+    workbook.Sheets['미국'][combined_address_Price] = price;
+    workbook.Sheets['미국'][combined_address_Stock] = stock;
+    temp1 = workbook.Sheets['미국'][combined_address_Price];
+    temp2 = workbook.Sheets['미국'][combined_address_Stock];
+    temp11 = workbook.Sheets['미국'][combined_address_Price_tmp];
+    temp22 = workbook.Sheets['미국'][combined_address_Stock_tmp];
+    
+    //return workbook;
+
+    console.log({temp1});
+    console.log({temp2});
+    console.log('===========================================================');
+    console.log({temp11});
+    console.log({temp22});
+    //console.log({test});
+
+}
+
+/*function generateAlphabetLow(i) {
     if (i>26) {
         firstAlpha = i/27;
         secondAlpha = i-firstAlpha*26;
@@ -112,24 +155,35 @@ function generateAlphabetLow(i) {
         console.log({combindedAlpha});
     }
     //return combindedAlpha;
+}*/
+
+function constructCell (sInput) {
+    var objTemp = new Object();
+    objTemp.t = 's';
+    objTemp.v = sInput;
+    objTemp.r = '<t>' + sInput +'</t>';
+    objTemp.h = sInput;
+    objTemp.w = sInput;
+
+    return objTemp;
 }
-
-// generateAlphabetLow(27);
-
-/* for(i=0;i<len;i++) {
-    product_URL = excelRead('상품등록표.xlsx', i);
-    crawlProduct(product_URL);
-    console.log({ product_URL }) ;
-} */
 
 (async () => {
     for(i=start;i<end;i++) {
         // console.log( '\n', i, ' 번째 시작!' ) ;
-        product_URL = excelRead('상품등록표_2.xlsx', i);
+        product_URL = excelRead('상품등록표.xlsx', i);
         if( product_URL == null ) {            
             console.log( `${i}번째 상품의 링크값에 오류가 있습니다.` ) ;
         } else {
             dataObj = await findFiles( product_URL, i ) ;
+            console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$ 추출결과 $$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+            //console.log({dataObj});
+            
+            objStock = constructCell(dataObj.strStock);
+            objPrice = constructCell(dataObj.strPrice);
+            
+            excelWrite ('상품등록표.xlsx', dataObj.num, objStock, objPrice, i);
         }
     }
+    excel.writeFile(workbook, "상품등록표_Result.xlsx");
 })();
