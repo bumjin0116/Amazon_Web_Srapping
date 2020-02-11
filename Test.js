@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const excel = require('xlsx');
 const glob = require( 'glob' ) ;
+const cheerio = require('cheerio') ;
 
 let myArgs = process.argv.slice(2).map(Number)
 ,   start = myArgs[0] || 0
@@ -20,9 +21,10 @@ async function crawlProduct(url, num) {
     let strTitle 
     ,   strStock
     ,   strPrice = null 
+    ,   html = ''
     ;
 
-    console.log({ num, url }) ;
+    // console.log({ num, url }) ;
 
     /* 아마존 사이트가 아닐 경우 */
     if( url.indexOf( 'amazon.com' ) < 0 ){
@@ -30,37 +32,64 @@ async function crawlProduct(url, num) {
         return ;
     }
 
+    
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(url);
-
-    /* 제목 */
-    const [el] = await page.$x('//*[@id="productTitle"]');      // Product Title 
-    const title = await el.getProperty('textContent');
-    const jsonTitle = await title.jsonValue();
-    strTitle= jsonTitle.trim();
-    console.log({strTitle});
-
-    /* 재고 */
-    const [el2] = await page.$x('//*[@id="availability"]/span');        // Stock availability
-    const stock = await el2.getProperty('textContent');
-    const jsonStock = await stock.jsonValue();
-    strStock= jsonStock.trim();
-    console.log({strStock});   
+    const response = await page.goto(url, {
+        waitLoad: true, 
+        waitUntil: 'networkidle2',
+        // timeout: 20000
+      });
     
-    /* 가격 */
-    const [el3] = await page.$x('//*[@id="price_inside_buybox"]');      // Price 
+    function timeout(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };
 
-    /* el3을 찾아서 존재한다면 품절이 아니다. */
-    if( el3 ) {
-        const price = await el3.getProperty('textContent');
-        const jsonPrice = await price.jsonValue();
-        strPrice = jsonPrice.trim().replace("US$","");    
-    } else {    /* 품절 일 경우 0 처리 */
-        strPrice = 0 ;
-    }
+    // await timeout(10000)
 
-    console.log({strPrice});   
+    html = await response.text() ;
+
+    const $ = cheerio.load( html ) ;
+    
+    console.log( '1 타이틀 : ', $('#productTitle').text().trim() ) ;
+    console.log( '2 가격 : ', $('#priceblock_ourprice').text().trim() ) ;
+    console.log( '3 재고 : ', $('#availability_feature_div').text().trim() ) ;
+    console.log( '4 브랜드 : ', $('#bylineInfo').text() ) ;
+    console.log( '\n' ) ;
+
+    // console.log( '5 :', '5 ininini' ) ;
+
+    // console.log( html ) ;
+
+
+    
+    // /* 제목 */
+    // const [el] = await page.$x('//*[@id="productTitle"]');      
+    // const title = await el.getProperty('textContent');
+    // const jsonTitle = await title.jsonValue();
+    // strTitle= jsonTitle.trim();
+    // console.log({strTitle});
+
+    // /* 재고 */
+    // const [el2] = await page.$x('//*[@id="availability"]/span');        
+    // const stock = await el2.getProperty('textContent');
+    // const jsonStock = await stock.jsonValue();
+    // strStock= jsonStock.trim();
+    // console.log({strStock});   
+    
+    // /* 가격 */
+    // const [el3] = await page.$x('//*[@id="price_inside_buybox"]');      
+
+    // /* el3을 찾아서 존재한다면 품절이 아니다. */
+    // if( el3 ) {
+    //     const price = await el3.getProperty('textContent');
+    //     const jsonPrice = await price.jsonValue();
+    //     strPrice = jsonPrice.trim().replace("US$","");    
+    // } else {    /* 품절 일 경우 0 처리 */
+    //     strPrice = 0 ;
+    // }
+
+    // console.log({strPrice});   
     browser.close();
     return { num, url, strTitle, strStock, strPrice } ;
 }
