@@ -12,6 +12,6 @@
   "dependencies": {
     "puppeteer": "^2.1.1",
     "sheetjs": "^2.0.0",
-    "xlsx": "^0.15.5"
+    "xlsx": "^0.17.0"
   }
 }
